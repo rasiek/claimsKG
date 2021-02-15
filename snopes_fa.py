@@ -59,7 +59,7 @@ class SnopesFactCheckingSiteExtractor(FactCheckingSiteExtractor):
     def extract_urls(self, parsed_listing_page: BeautifulSoup):
         urls = list()
         #links = parsed_listing_page.findAll("article", {"class": "media-wrapper"})
-        links = parsed_listing_page.findAll("article")# enlever la classe
+        links = parsed_listing_page.findAll("article",{"class":"media"})# enlever la classe
         for anchor in links:
             anchor = anchor.find('a', href=True)
             url = str(anchor['href'])
@@ -83,14 +83,14 @@ class SnopesFactCheckingSiteExtractor(FactCheckingSiteExtractor):
 
         # title
         
-        #article = parsed_claim_review_page.find("article", {'class', 'single-main'})
-        article = parsed_claim_review_page.find_all("article")
+        article = parsed_claim_review_page.find("article", {'class', 'single-main'})
+        #article = parsed_claim_review_page.find_all("article")
         #print (article[0])
-        article1=article[0]
-        if article1 is None:
+        #article1=article[0]
+        if article is None:
             #article = parsed_claim_review_page.find("article", {'class', 'snopes-post'})
             article = parsed_claim_review_page.find("article", {'class', 'snopes-post'})
-        header = article1.find("header")
+        header = article.find("header")
         if header is not None:
             title = header.find("h1")
             #print(title)
@@ -100,7 +100,7 @@ class SnopesFactCheckingSiteExtractor(FactCheckingSiteExtractor):
         #card = article.find("div", {"class": "single-body card card-body rich-text"})
         #print(card)
         #card_body = card.find("div", {'class': 'content'})
-        card_body = article1.find("div", {"class": "single-body card card-body rich-text"})
+        card_body = article.find("div", {"class": "single-body card card-body rich-text"})
        
         #card_body = card.find("div", {'class': 'content'})
 
