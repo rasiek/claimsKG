@@ -139,7 +139,7 @@ class SnopesFactCheckingSiteExtractor(FactCheckingSiteExtractor):
             for rating_class in rating_class_list:
                 rating = parsed_claim_review_page.find(
                     "span", {"class": rating_class})
-                if rating_class != None:
+                if rating != None:
                     break
 
         if not rating:
