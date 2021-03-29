@@ -1,3 +1,4 @@
+
 import pandas as pd
 import string
 from sklearn.svm import LinearSVC
@@ -19,7 +20,6 @@ from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 #phase de recuperation de tous les claims
 def textmining(fichiers):
-
     corpus0=pd.read_csv(fichiers)
     corpus= corpus0[['claimReview_claimReviewed']].copy()
     y=corpus0[['rating_alternateName']].copy()
@@ -57,4 +57,5 @@ def textmining(fichiers):
     plt.xlabel('Prediction ')
     plt.show()
     
-textmining('output_got.csv')
+textmining('output_got_politifact.csv')
+
