@@ -1,14 +1,16 @@
-
-
 # scikit imports
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import cross_val_score
+from sklearn.metrics import accuracy_score
 
 # other imports
 import pandas as pd
@@ -17,6 +19,9 @@ import matplotlib.pyplot as plt
 
 
 class Value:
+    """
+    Truth Value enumeration class 
+    """
 
     TRUE = 'True'
     FALSE = 'False'
@@ -44,6 +49,7 @@ class Claim:
 
 class Claims_Processor:
 
+
     def __init__(self, csv_file, classifier) -> None:
 
 
@@ -53,10 +59,19 @@ class Claims_Processor:
         self.X_test = None
         self.y_train = None
         self.y_test = None
+        self.CM = None
 
         # Classifiers
 
-        self.linear = SVC(kernel= 'linear')
+        self.classifiers = {
+        'Logistic Regression': LogisticRegression(max_iter=1000),
+        'Gaussian NB': GaussianNB(),
+        'Decision Tree': DecisionTreeClassifier(),
+        'K Neighboors': KNeighborsClassifier(),
+        'System Vector': SVC(kernel='linear')
+        }
+
+        self.linear = SVC(kernel='linear')
         self.neighbors = KNeighborsClassifier(n_neighbors=3)
 
 
@@ -76,6 +91,14 @@ class Claims_Processor:
             self.__linear_classification()
         elif classifier == 'neighbor':
             self.__neighbor_clasification()
+        elif classifier == 'comparison':
+            self.clf_comparison()
+
+
+    
+    def __tokenizer(self):
+        pass
+
         
 
 
@@ -105,16 +128,51 @@ class Claims_Processor:
 
         scores = cross_val_score(self.neighbors, self.X, self.y)
         print(scores)
-        
-        predicted = cross_val_predict(self.neighbors, self.X, self.y)
+        y_pred = cross_val_predict(self.neighbors, self.X, self.y)
+
+
         labels = [0,1,2]
         tick_labels = ["True","False", "Mixed"]
-        sns.heatmap(confusion_matrix(self.y,predicted, labels=labels), annot=True, xticklabels=tick_labels, yticklabels=tick_labels)
+
+        sns.heatmap(confusion_matrix(self.y, y_pred, labels=labels), annot=True, xticklabels=tick_labels, yticklabels=tick_labels)
         
         plt.ylabel('valeur cible')
         plt.xlabel('Prediction ')
         plt.tick_params()
         plt.show()
+
+    def clf_comparison(self):
+
+        for train_index, test_index in self.skf.split(self.X.toarray(), self.y):
+
+            self.X_train, self.X_test = self.X[train_index], self.X[test_index]
+            self.y_train, self.y_test = self.y[train_index], self.y[test_index]
+
+        for key, clf in self.classifiers.items():
+            
+            clf.fit(self.X_train.toarray(), self.y_train)
+            score = clf.score(self.X_test.toarray(), self.y_test)
+
+            print(f'Classifier: {key}')
+
+            if hasattr(clf, 'predict'):
+                y_pred = clf.predict(self.X_test.toarray())
+            
+            # if hasattr(clf, 'predict_proba'):
+            #     probability = clf.predict_proba(self.X_test.toarray())
+            #     for prob, value, pred in zip(probability, self.y_test, y_pred):
+            #         print(f'probability: {prob}, pred: {pred} value: {value}')
+
+            accu = accuracy_score(self.y_test, y_pred)
+            accu_not_normalized = accuracy_score(self.y_test, y_pred, normalize=False)
+
+            print(f"""
+                accuracy score: {accu},
+                accuracy score not normalized: {accu_not_normalized},
+                """)
+
+
+
 
     
     def __linear_classification(self):
@@ -124,22 +182,49 @@ class Claims_Processor:
             self.X_train, self.X_test = self.X[train_index], self.X[test_index]
             self.y_train, self.y_test = self.y[train_index], self.y[test_index]
 
+            
+
+        
+
 
         self.linear.fit(self.X_train, self.y_train)
 
-        prediction = cross_val_predict(self.linear, self.X_test, self.y_test)
+        y_pred = cross_val_predict(self.linear, self.X_test, self.y_test)
+
+
         labels = [0,1,2]
         tick_labels = ["True","False", "Mixed"]
-        sns.heatmap(confusion_matrix(self.y_test, prediction, labels=labels), annot=True, xticklabels=tick_labels, yticklabels=tick_labels)
         
-        plt.ylabel('valeur cible')
-        plt.xlabel('Prediction ')
-        plt.tick_params()
+        linear_accu =accuracy_score(self.y_test, y_pred)
+        linear_accu_not_normalized =accuracy_score(self.y_test, y_pred, normalize=False)
+        linear_scores = cross_val_score(self.linear, self.X_test, self.y_test)
+
+        lin_sco_str = "cross validation scores:"
+        count = 1
+        nl = "\n"
+        for score in linear_scores:
+            lin_sco_str += f"{nl}Run {count}: {score}"
+            count += 1
+
+
+        print(f"""
+        accuracy score: {linear_accu},
+        accuracy score not normalized: {linear_accu_not_normalized},
+        {lin_sco_str}
+        """)
+        
+
+
+        self.CM = confusion_matrix(self.y_test, y_pred, labels=labels)
+        sns.heatmap(self.CM, annot=True, xticklabels=tick_labels, yticklabels=tick_labels)
+        
+        plt.ylabel('Valeur cible')
+        plt.xlabel('Prediction')
         plt.show()
 
 
 
 filename = 'output_got.csv'
-Claims_Processor(filename, 'linear')
+Claims_Processor(filename, 'comparison')
 
 
