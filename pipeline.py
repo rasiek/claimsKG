@@ -1,4 +1,4 @@
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
 from sklearn.preprocessing import Binarizer, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -31,8 +31,10 @@ print(pipe.get_params())
 
 grid_params = {
     'vectorizer__analyzer': ['word', 'char', 'char_wb'],
-    'vectorizer__binary': [True, False],
     'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+    'vectorizer__stop_words': [stop_words, None],
+    'vectorizer__vocabulary':[vocabulary, None],
+    'vectorizer__binary': [True, False],
     'bayes__alpha': [0, 1.0],
 }
 

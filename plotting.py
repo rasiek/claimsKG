@@ -50,7 +50,7 @@ class Claim:
 class Claims_Processor:
 
 
-    def __init__(self, csv_file, classifier) -> None:
+    def __init__(self, classifier, *args) -> None:
 
 
         #Variables
@@ -76,8 +76,9 @@ class Claims_Processor:
 
 
         # Tools
-        self.dataframe = pd.read_csv(csv_file)
         self.vectorizer = TfidfVectorizer(stop_words='english')
+        self.df_list = [pd.read_csv(x) for x in args]
+        # self.dataframe = pd.read_csv(csv_file)
         self.label_encoder = LabelEncoder()
         self.skf = StratifiedKFold()
 
@@ -109,12 +110,16 @@ class Claims_Processor:
 
         claims_list = []
 
-        claims_body = self.dataframe['claimReview_claimReviewed'].values.tolist()
-        claims_value = self.dataframe['rating_alternateName'].values.tolist()
+        for df in self.df_list:
 
-        for (body, value) in zip(claims_body, claims_value):
-            claims_list.append(Claim(body, value))
 
+
+            claims_body = df['claimReview_claimReviewed'].values.tolist()
+            claims_value = df['rating_alternateName'].values.tolist()
+
+            for (body, value) in zip(claims_body, claims_value):
+                claims_list.append(Claim(body, value))
+        
 
         return self.vectorizer.fit_transform([x.body for x in claims_list]), self.label_encoder.fit_transform([x.value for  x in claims_list])
 
@@ -224,7 +229,11 @@ class Claims_Processor:
 
 
 
-filename = 'output_got.csv'
-Claims_Processor(filename, 'comparison')
+# filename = 'output_got.csv'
+# filename2 = 'output_got_2.csv'
+# filename3 = 'output_got_3.csv'
+# Claims_Processor('comparison', filename, filename2)
+# Claims_Processor(filename1, 'comparison')
+# Claims_Processor(filename2, 'comparison')
 
 
