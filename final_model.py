@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+nltk.download('wordnet')
+from nltk.stem.wordnet import WordNetLemmatizer
 import string
 
 
@@ -29,6 +31,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import MultinomialNB, ComplementNB
 from sklearn.cluster import KMeans
+from sklearn.model_selection import KFold
 
 
 class Final_Model:
@@ -42,6 +45,8 @@ class Final_Model:
         self.porter_stemmer =  PorterStemmer()
         self.label_encoder = LabelEncoder()
         self.vectorizer = TfidfVectorizer()
+        self.lem = WordNetLemmatizer()
+        self.stop_words = stop_words = set(stopwords.words('english'))
 
         
         self.df_list = [pd.read_csv(x) for x in args]
@@ -51,6 +56,13 @@ class Final_Model:
 
 
         self.claims, self.y = self.__text_minning_tokenization()
+
+        self.models = [
+            ('neighbors', KNeighborsClassifier()),
+            ('bayes', MultinomialNB()),
+            ('complement_NB', ComplementNB()),
+            ('svc', SVC(kernel='linear'))
+        ]
 
         self.pipes = {
             'neighbors': Pipeline([
@@ -79,6 +91,7 @@ class Final_Model:
 
             'neighbors': {
                 'vectorizer__vocabulary': [None, self.vocabulary],
+                'vectorizer__stop_words': [None, self.stop_words],
                 'vectorizer__analyzer': ['word', 'char', 'char_wb'],
                 'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
                 'neighbors__weights': ['uniform', 'distance'],
@@ -87,6 +100,7 @@ class Final_Model:
             },
             'bayes': {
                 'vectorizer__vocabulary': [None, self.vocabulary],
+                'vectorizer__stop_words': [None, self.stop_words],
                 'vectorizer__analyzer': ['word', 'char', 'char_wb'],
                 'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
                 'bayes__alpha': [1.0, 0.0],
@@ -94,6 +108,7 @@ class Final_Model:
             },
             'svc': {
                 'vectorizer__vocabulary': [None, self.vocabulary],
+                'vectorizer__stop_words': [None, self.stop_words],
                 'vectorizer__analyzer': ['word'],
                 'vectorizer__ngram_range': [(1,1), (1,2)],
                 'svc__kernel': ['linear'],
@@ -103,6 +118,7 @@ class Final_Model:
             },
             'complement_nb': {
                 'vectorizer__vocabulary': [None, self.vocabulary],
+                'vectorizer__stop_words': [None, self.stop_words],
                 'vectorizer__analyzer': ['word', 'char', 'char_wb'],
                 'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
                 'complement_nb__alpha': [1.0, 0.0],
@@ -113,7 +129,8 @@ class Final_Model:
 
         # print(type(self.X))
         # print(self.X)
-        self.__exec_grid()
+        # self.__exec_grid()
+        self.__scoring()
 
 
 
@@ -121,8 +138,6 @@ class Final_Model:
         """
 
         """
-
-        stop_words = set(stopwords.words('english'))
 
         # print(corpus)
 
@@ -137,19 +152,19 @@ class Final_Model:
 
 
         for word in tokenized_text:
-            if word not in stop_words:
+            if word not in self.stop_words:
                 filtered_corpus.append(word)
 
-        stemed_words = []
+        lem_words = [self.lem.lemmatize(word) for word in filtered_corpus]
 
-        for word in filtered_corpus:
-            stemed_words.append(self.porter_stemmer.stem(word))
+        # for word in filtered_corpus:
+        #     stemed_words.append(self.porter_stemmer.stem(word))
 
         # print(filtered_corpus)
         # print('\nChange\n')
         # print(stemed_words)
 
-        vocabulary = list(set(filter(lambda token: token not in string.punctuation, stemed_words)))
+        vocabulary = list(set(filter(lambda token: token not in string.punctuation, lem_words)))
 
         return vocabulary
 
@@ -202,6 +217,33 @@ class Final_Model:
             print(f"""{estimator} score: {scores[estimator][1]},
                 {estimator} best params: {scores[estimator][0]}
             """)
+
+    def __scoring(self):
+
+
+        tfdf_trans = TfidfVectorizer()
+        X = tfdf_trans.fit_transform(self.claims).toarray()
+
+        for name, model in self.models:
+
+            kfold = KFold(n_splits=5)
+
+            cv_results = cross_val_score(model, X, self.y, cv=kfold, scoring='accuracy')
+
+            print(name)
+            print(cv_results)
+            print(cv_results.mean())
+            print(cv_results.std())
+            print("\n")
+
+
+
+
+
+
+
+
+
 
 
         
