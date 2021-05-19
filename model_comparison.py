@@ -1,8 +1,11 @@
 """
 
 """
-
+# local libraries
 from plotting import Claim
+from text_preprocessing import TextPreprocessing
+
+# nltk 
 import nltk
 from nltk.probability import FreqDist
 import pandas as pd
@@ -10,11 +13,14 @@ import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-nltk.download('wordnet')
 from nltk.stem.wordnet import WordNetLemmatizer
+
+# python
 import string
 
 
+
+# sklearn
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
@@ -34,7 +40,9 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import KFold
 
 
-class Final_Model:
+
+
+class ModelComparison:
 
     def __init__(self, *args) -> None:
         """
@@ -46,14 +54,9 @@ class Final_Model:
         self.label_encoder = LabelEncoder()
         self.vectorizer = TfidfVectorizer()
         self.lem = WordNetLemmatizer()
-        self.stop_words = stop_words = set(stopwords.words('english'))
 
         
         self.df_list = [pd.read_csv(x) for x in args]
-
-        self.vocabulary = self.__create_vocabulary()
-
-
 
         self.claims, self.y = self.__text_minning_tokenization()
 
@@ -66,23 +69,23 @@ class Final_Model:
 
         self.pipes = {
             'neighbors': Pipeline([
-                ('vectorizer', CountVectorizer()),
-                ('tfidf', TfidfTransformer()),
+                ('preprocessing', TextPreprocessing()),
+                ('tfidf', TfidfVectorizer()),
                 ('neighbors', KNeighborsClassifier())
             ]),
             'bayes': Pipeline([
-                ('vectorizer', CountVectorizer()),
-                ('tfidf', TfidfTransformer()),
+                ('preprocessing', TextPreprocessing()),
+                ('tfidf', TfidfVectorizer()),
                 ('bayes', MultinomialNB())
             ]),
             'complement_nb': Pipeline([
-                ('vectorizer', CountVectorizer()),
-                ('tfidf', TfidfTransformer()),
+                ('preprocessing', TextPreprocessing()),
+                ('tfidf', TfidfVectorizer()),
                 ('complement_nb', ComplementNB())
             ]),
             'svc': Pipeline([
-                ('vectorizer', CountVectorizer()),
-                ('tfidf', TfidfTransformer()),
+                ('preprocessing', TextPreprocessing()),
+                ('tfidf', TfidfVectorizer()),
                 ('svc', SVC()),
             ])
         }
@@ -90,83 +93,53 @@ class Final_Model:
         self.params = {
 
             'neighbors': {
-                'vectorizer__vocabulary': [None, self.vocabulary],
-                'vectorizer__stop_words': [None, self.stop_words],
-                'vectorizer__analyzer': ['word', 'char', 'char_wb'],
-                'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                'neighbors__weights': ['uniform', 'distance'],
-                'neighbors__algorithm': ['ball_tree', 'kd_tree', 'brute'],
-                'neighbors__n_neighbors': [3,5,7]
+                'preprocessing__removestopwords': [True,False],
+                'preprocessing__getlemmas': [True, False],
+                'preprocessing__getstemmer': [True, False],
+                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                # 'neighbors__weights': ['uniform', 'distance'],
+                # 'neighbors__algorithm': ['ball_tree', 'kd_tree', 'brute'],
+                # 'neighbors__n_neighbors': [3,5,7]
             },
             'bayes': {
-                'vectorizer__vocabulary': [None, self.vocabulary],
-                'vectorizer__stop_words': [None, self.stop_words],
-                'vectorizer__analyzer': ['word', 'char', 'char_wb'],
-                'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                'bayes__alpha': [1.0, 0.0],
-                'bayes__fit_prior': [True, False]
+                'preprocessing__removestopwords': [True,False],
+                'preprocessing__getlemmas': [True, False],
+                'preprocessing__getstemmer': [True, False],
+                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                # 'bayes__alpha': [1.0, 0.0],
+                # 'bayes__fit_prior': [True, False]
             },
             'svc': {
-                'vectorizer__vocabulary': [None, self.vocabulary],
-                'vectorizer__stop_words': [None, self.stop_words],
-                'vectorizer__analyzer': ['word'],
-                'vectorizer__ngram_range': [(1,1), (1,2)],
-                'svc__kernel': ['linear'],
-                'svc__gamma': ['scale', 'auto'],
-                'svc__class_weight': ['balanced', None],
-                'svc__decision_function_shape': ['ovr', 'ovo']
+                'preprocessing__removestopwords': [True,False],
+                'preprocessing__getlemmas': [True, False],
+                'preprocessing__getstemmer': [True, False],
+                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                # 'tfidf__ngram_range': [(1,1), (1,2)],
+                # 'svc__kernel': ['linear'],
+                # 'svc__gamma': ['scale', 'auto'],
+                # 'svc__class_weight': ['balanced', None],
+                # 'svc__decision_function_shape': ['ovr', 'ovo']
             },
             'complement_nb': {
-                'vectorizer__vocabulary': [None, self.vocabulary],
-                'vectorizer__stop_words': [None, self.stop_words],
-                'vectorizer__analyzer': ['word', 'char', 'char_wb'],
-                'vectorizer__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                'complement_nb__alpha': [1.0, 0.0],
-                'complement_nb__norm': [False, True],
+                'preprocessing__removestopwords': [True,False],
+                'preprocessing__getlemmas': [True, False],
+                'preprocessing__getstemmer': [True, False],
+                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                # 'complement_nb__alpha': [1.0, 0.0],
+                # 'complement_nb__norm': [False, True],
             }
         }
 
 
         # print(type(self.X))
         # print(self.X)
-        # self.__exec_grid()
-        self.__scoring()
+        self.__exec_grid()
+        # self.__scoring()
 
-
-
-    def __create_vocabulary(self):
-        """
-
-        """
-
-        # print(corpus)
-
-        corpus_str = ''
-
-        for df in self.df_list:
-            corpus_str = ' '.join(df['claimReview_claimReviewed'].values.tolist())
-
-        tokenized_text = word_tokenize(corpus_str)
-        # print(corpus)
-        filtered_corpus = []
-
-
-        for word in tokenized_text:
-            if word not in self.stop_words:
-                filtered_corpus.append(word)
-
-        lem_words = [self.lem.lemmatize(word) for word in filtered_corpus]
-
-        # for word in filtered_corpus:
-        #     stemed_words.append(self.porter_stemmer.stem(word))
-
-        # print(filtered_corpus)
-        # print('\nChange\n')
-        # print(stemed_words)
-
-        vocabulary = list(set(filter(lambda token: token not in string.punctuation, lem_words)))
-
-        return vocabulary
 
 
 
@@ -205,18 +178,34 @@ class Final_Model:
 
             scores[pipe] = [
                 grid.best_estimator_,
-                grid.best_score_
+                grid.best_score_,
+                grid.best_params_
             ]
             
 
-            # resdf = pd.DataFrame(grid.cv_results_)
+            resdf = pd.DataFrame(grid.cv_results_)
 
-            # resdf.to_csv(f'scores_{pipe}.csv')
+            resdf.to_csv(f'scores_{pipe}1.csv')
+        
+        for pipe in scores:
+            best_score = 0.0
+            best_classifier = []
 
-        for estimator in scores:
-            print(f"""{estimator} score: {scores[estimator][1]},
-                {estimator} best params: {scores[estimator][0]}
-            """)
+            if scores[pipe][1] > best_score:
+                best_score = scores[pipe][1]
+                best_classifier = scores[pipe]
+
+        print(best_classifier)
+        
+
+        
+
+            
+
+        # for estimator in scores:
+        #     print(f"""{estimator} score: {scores[estimator][1]},
+        #         {estimator} best params: {scores[estimator][0]}
+        #     """)
 
     def __scoring(self):
 
@@ -251,4 +240,4 @@ class Final_Model:
 
 
 
-test = Final_Model('output_got.csv', 'output_got_test.csv')
+test = ModelComparison('output_got.csv')
