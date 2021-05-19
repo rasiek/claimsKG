@@ -1,3 +1,4 @@
 env/
 *.csv
 *textMining*.py
+final_model.py
