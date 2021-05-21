@@ -38,7 +38,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import MultinomialNB, ComplementNB
 from sklearn.cluster import KMeans
 from sklearn.model_selection import KFold
-
+from sklearn.linear_model import SGDClassifier
 
 
 
@@ -58,12 +58,12 @@ class ModelComparison:
         
         self.df_list = [pd.read_csv(x) for x in args]
 
-        self.claims, self.y = self.__text_minning_tokenization()
+        self.claims, self.y = self.__corpus_recovery()
 
         self.models = [
             ('neighbors', KNeighborsClassifier()),
             ('bayes', MultinomialNB()),
-            ('complement_NB', ComplementNB()),
+            ('sgd', ComplementNB()),
             ('svc', SVC(kernel='linear'))
         ]
 
@@ -78,10 +78,10 @@ class ModelComparison:
                 ('tfidf', TfidfVectorizer()),
                 ('bayes', MultinomialNB())
             ]),
-            'complement_nb': Pipeline([
+            'sgd': Pipeline([
                 ('preprocessing', TextPreprocessing()),
                 ('tfidf', TfidfVectorizer()),
-                ('complement_nb', ComplementNB())
+                ('sgd', SGDClassifier())
             ]),
             'svc': Pipeline([
                 ('preprocessing', TextPreprocessing()),
@@ -96,54 +96,52 @@ class ModelComparison:
                 'preprocessing__removestopwords': [True,False],
                 'preprocessing__getlemmas': [True, False],
                 'preprocessing__getstemmer': [True, False],
-                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
-                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                # 'neighbors__weights': ['uniform', 'distance'],
-                # 'neighbors__algorithm': ['ball_tree', 'kd_tree', 'brute'],
-                # 'neighbors__n_neighbors': [3,5,7]
+                'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                'neighbors__weights': ['uniform', 'distance'],
+                'neighbors__algorithm': ['ball_tree', 'kd_tree', 'brute'],
+                'neighbors__n_neighbors': [3,5,7]
             },
             'bayes': {
                 'preprocessing__removestopwords': [True,False],
                 'preprocessing__getlemmas': [True, False],
                 'preprocessing__getstemmer': [True, False],
-                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
-                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                # 'bayes__alpha': [1.0, 0.0],
-                # 'bayes__fit_prior': [True, False]
+                'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                'bayes__alpha': [1e-2, 1e-3, 1],
+                'bayes__fit_prior': [True, False]
             },
             'svc': {
                 'preprocessing__removestopwords': [True,False],
                 'preprocessing__getlemmas': [True, False],
                 'preprocessing__getstemmer': [True, False],
-                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
-                # 'tfidf__ngram_range': [(1,1), (1,2)],
-                # 'svc__kernel': ['linear'],
-                # 'svc__gamma': ['scale', 'auto'],
-                # 'svc__class_weight': ['balanced', None],
-                # 'svc__decision_function_shape': ['ovr', 'ovo']
+                'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                'tfidf__ngram_range': [(1,1), (1,2), (1,4), (1,5), (2,3)],
+                'svc__kernel': ['linear'],
+                'svc__gamma': ['scale', 'auto'],
+                'svc__class_weight': ['balanced', None],
+                'svc__decision_function_shape': ['ovr', 'ovo']
             },
-            'complement_nb': {
+            'sgd': {
                 'preprocessing__removestopwords': [True,False],
                 'preprocessing__getlemmas': [True, False],
                 'preprocessing__getstemmer': [True, False],
-                # 'tfidf__analyzer': ['word', 'char', 'char_wb'],
-                # 'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
-                # 'complement_nb__alpha': [1.0, 0.0],
-                # 'complement_nb__norm': [False, True],
+                'tfidf__analyzer': ['word', 'char', 'char_wb'],
+                'tfidf__ngram_range': [(1,1), (1,2), (1,3), (1,4), (1,5), (2,3)],
+                'sgd__alpha': [1e-2, 1e-3],
+                'sgd__tol': [1e-3, None],
+                'sgd__random_state': [None, 42]
             }
         }
 
-
-        # print(type(self.X))
-        # print(self.X)
-        self.__exec_grid()
+        # self.__exec_grid()
         # self.__scoring()
+        self.boxplot()
 
 
 
-
-    def __text_minning_tokenization(self):
+    def __corpus_recovery(self):
         """
         Returns two lists of the tokenized the body of the Claim and its truth value adjusted to the claimsKG scale 
         """
@@ -165,6 +163,8 @@ class ModelComparison:
     def __exec_grid(self):
 
         scores = {}
+        results = []
+        names = []
 
         for pipe in self.pipes:
 
@@ -182,6 +182,7 @@ class ModelComparison:
                 grid.best_params_
             ]
             
+            results.append(grid.cv_results_)
 
             resdf = pd.DataFrame(grid.cv_results_)
 
@@ -224,6 +225,41 @@ class ModelComparison:
             print(cv_results.mean())
             print(cv_results.std())
             print("\n")
+
+
+
+    def boxplot(self):
+
+        results = []
+        names = []
+
+        scoring = "accuracy"
+
+        for pipe in self.pipes.keys():
+
+            kfold = KFold(n_splits=10, random_state=42, shuffle=True)
+            cv_results = cross_val_score(self.pipes[pipe], self.claims, self.y, cv=kfold, scoring=scoring)
+
+            results.append(cv_results)
+            names.append(pipe)
+
+            msg = f"{pipe}: {cv_results.mean()}, {cv_results.std()}"
+            print(msg)
+            print("\n")
+            print(cv_results)
+            print("\n")
+
+
+        fig = plt.figure()
+        fig.suptitle("Algorithm Comparison")
+        ax = fig.add_subplot(111)
+        plt.boxplot(results)
+        ax.set_xticklabels(names)
+        plt.show()
+
+            
+
+
 
 
 
