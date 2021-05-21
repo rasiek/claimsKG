@@ -197,34 +197,6 @@ class ModelComparison:
                 best_classifier = scores[pipe]
 
         print(best_classifier)
-        
-
-        
-
-            
-
-        # for estimator in scores:
-        #     print(f"""{estimator} score: {scores[estimator][1]},
-        #         {estimator} best params: {scores[estimator][0]}
-        #     """)
-
-    def __scoring(self):
-
-
-        tfdf_trans = TfidfVectorizer()
-        X = tfdf_trans.fit_transform(self.claims).toarray()
-
-        for name, model in self.models:
-
-            kfold = KFold(n_splits=5)
-
-            cv_results = cross_val_score(model, X, self.y, cv=kfold, scoring='accuracy')
-
-            print(name)
-            print(cv_results)
-            print(cv_results.mean())
-            print(cv_results.std())
-            print("\n")
 
 
 
