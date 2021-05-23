@@ -210,7 +210,11 @@ class ModelComparison:
         for pipe in self.pipes.keys():
 
             kfold = KFold(n_splits=10, random_state=42, shuffle=True)
-            cv_results = cross_val_score(self.pipes[pipe], self.claims, self.y, cv=kfold, scoring=scoring)
+            cv_results = cross_val_score(
+                                        self.pipes[pipe], 
+                                        self.claims, self.y, 
+                                        cv=kfold, 
+                                        scoring=scoring)
 
             results.append(cv_results)
             names.append(pipe)
@@ -248,4 +252,4 @@ class ModelComparison:
 
 
 
-test = ModelComparison('output_got.csv')
+test = ModelComparison('output_got_complete.csv')
