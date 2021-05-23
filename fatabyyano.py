@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 import json
 import math
@@ -53,50 +54,57 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
             :param parsed_listing_page:
             :return: The page count if relevant, otherwise None or a negative integer
         """
-        page_numbers = parsed_listing_page.select("div.nav-links a.page-numbers span")
-        maximum = 1
-        for page_number in page_numbers:
-            p = int(page_number.text)
-            if (p > maximum):
-                maximum = p
-        return 2
-
-    def retrieve_urls(self, parse_page: BeautifulSoup) -> \
-            List[str]:
-        """
-            :parsed_listing_page: --> une page (parsed) qui liste des claims
-            :listing_page_url:    --> l'url associé à la page ci-dessus
-            :number_of_page:      --> number_of_page
-            :return:              --> la liste des url de toutes les claims
-        """
-        """
         result = []
         
-        listing_category = ["religious_related_rumors","medical-rumors","technological_related_rumors","social_related_rumors","politics_related_rumors","fatabyyano_articles","science_related_rumors"]
+        listing_category = ["religious_related_rumors","medical-rumors","technological_related_rumors","social_related_rumors",
+        "politics_related_rumors","fatabyyano_articles","science_related_rumors"]
+        
+        result = []
         for category in listing_category:
-            #print("fafa",category)
-            #print(number_of_pages)
-            url_begin = "https://fatabyyano.net/category/"+category+"/"
-            #print(url_begin)
-            
-            result.append(url_begin)
-        #print(result)
-        return result
-                #return json.loads(json_params)
-        """
+            nbPage = 2
+                
+            while nbPage < 100: #while True:
+                json_params = """{"columns":"3","exclude_items":"none","img_size":"default",
+                "ignore_items_size":false,"items_layout":"15632","items_offset":"1",
+                "load_animation":"none","overriding_link":"none","post_id":15837,"query_args":
+                {"category_name":\""""+category+"""\","post_type":["post"],"post_status":
+                ["publish"],"tax_query":[{"taxonomy":"category","terms":[\""""+category+"""\"],
+                "field":"slug","operator":"IN","include_children":true}],"paged":"""+str(nbPage)+"""},
+                "orderby_query_args":{"orderby":{"date":"DESC"}},"type":"masonry","us_grid_ajax_index":1,
+                "us_grid_filter_params":null,"us_grid_index":1,"_us_grid_post_type":"current_query"}"""
+                
+                data = json.loads(json_params)
+    
+    
+                parsed = caching.post(f"https://fatabyyano.net/category/{category}", data=data,headers=self.headers)
+                if parsed == None:
+                    break 
+                else:
+                    parse_page= BeautifulSoup(parsed, "lxml")
+                    articles_list = parse_page.findAll("article")
+                    for article in articles_list:
+                        url = article.find("a")["href"]
+                        result.append(url)
 
-        #url_begin = listing_page_url + "page/"
-        #url_end = "/"
+         
+                nbPage += 1
+        
+        return nbPage
+
+    def retrieve_urls(self, parsed_claim_review_page: BeautifulSoup, listing_page_url: str, number_of_pages: int) -> \
+            List[str]:
+
         result = []
         
-        listing_category = ["religious_related_rumors","medical-rumors","technological_related_rumors","social_related_rumors","politics_related_rumors","fatabyyano_articles","science_related_rumors"]
+        listing_category = ["religious_related_rumors","medical-rumors","technological_related_rumors",
+        "social_related_rumors","politics_related_rumors","fatabyyano_articles","science_related_rumors"]
         
         for category in listing_category:
                         
             
             nbPage = 2
                 
-            while nbPage < 6: #while True:
+            while nbPage < 100: #while True:
                 json_params = """{"columns":"3","exclude_items":"none","img_size":"default","ignore_items_size":false,"items_layout":"15632","items_offset":"1","load_animation":"none","overriding_link":"none","post_id":15837,"query_args":{"category_name":\""""+category+"""\","post_type":["post"],"post_status":["publish"],"tax_query":[{"taxonomy":"category","terms":[\""""+category+"""\"],"field":"slug","operator":"IN","include_children":true}],"paged":"""+str(nbPage)+"""},"orderby_query_args":{"orderby":{"date":"DESC"}},"type":"masonry","us_grid_ajax_index":1,"us_grid_filter_params":null,"us_grid_index":1,"_us_grid_post_type":"current_query"}"""
                 data = json.loads(json_params)
     
@@ -117,28 +125,7 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
         return result
         
 
-        """
-
-        result = []
-        url_end=""
-        listing_category = ["religious_related_rumors","medical-rumors","technological_related_rumors","social_related_rumors","politics_related_rumors","fatabyyano_articles","science_related_rumors"]
-        for category in listing_category:
-            #print("fafa",category)
-            #print(number_of_pages)
-            url_begin = "https://fatabyyano.net/category/"+category+"/"
-            #print(url_begin)
-            for nbPage in range(number_of_pages):
-                nbpages=str(nbPage)
-                url_end = "{\"columns\":\"3\",\"exclude_items\":\"none\",\"img_size\":\"default\",\"ignore_items_size\":false,\"items_layout\":\"15632\",\"items_offset\":\"1\",\"load_animation\":\"none\",\"overriding_link\":\"none\",\"post_id\":15837,\"query_args\":{\"category_name\":\""+category+"\",\"post_type\":[\"post\"],\"post_status\":[\"publish\"],\"tax_query\":[{\"taxonomy\":\"category\",\"terms\":[\"category\"],\"field\":\"slug\",\"operator\":\"IN\",\"include_children\":true}],\"paged\":"+nbpages+"},\"orderby_query_args\":{\"orderby\":{\"date\":\"DESC\"}},\"type\":\"masonry\",\"us_grid_ajax_index\":1,\"us_grid_filter_params\":null,\"us_grid_index\":1,\"_us_grid_post_type\":\"current_query\"}"
-                
-                url = url_begin + url_end
-                #print(url)
-                #parsed_web_page = self.get(url)
-            
-                result.append(url)
-        
-        return result
-         """       
+             
     def extract_claim_and_review(self, parsed_claim_review_page: BeautifulSoup, url: str) -> List[Claim]:
         self.claim = self.extract_claim(parsed_claim_review_page)
         self.review = self.extract_review(parsed_claim_review_page)
@@ -173,7 +160,7 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
             
         else:
             # print("something wrong in extracting claim")
-            return "CLAIMNONTROUVER"
+            return "CLAIM_NON_TROUVER"
 
     def extract_review(self, parsed_claim_review_page: BeautifulSoup) -> str:
         #return self.escape(parsed_claim_review_page.select_one(
@@ -184,7 +171,7 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
             revue = self.escape(a.text)
             liste.append(revue)
             
-        print(liste[:])
+        #print(liste[:])
         return liste
         
 
@@ -211,7 +198,7 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
         
         else:
             print("something wrong in extracting the date")
-            return "dateNonTrouver"
+            return "date_Non_Trouver"
         
     
      
@@ -236,28 +223,49 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
         return "fatabyyano"
 
     def extract_rating_value(self, parsed_claim_review_page: BeautifulSoup) -> str:
-        numImage = 20000
-        while numImage < 40000:
-            e = parsed_claim_review_page.select_one("div.w-post-elm.post_content")
-            value= e.select_one(f"img.alignnone.size-full.wp-image-{numImage}.lazyloaded")
-            numImage += 1
         
-            print(value)
-            if value:
+        result=""
+
+        ve= parsed_claim_review_page.findAll("div",{"class":"w-post-elm post_content"})
+       
+
+        if ve:
+            for v in ve:
+                numImage = 18000
+                while numImage < 32000:
+                    vc = v.select("img.alignnone.size-full.wp-image-"+str(numImage))
+                    
+                        
                 
-                v= value["alt"]
-                print(v)
+            
+                    if vc:
+                        
+                        v=vc[0]
+                        result=v["alt"]
+                        #print("veracité:"+result)
+            
                 
-                return v
-            else:
-                # print("Something wrong in extracting rating value !")
-                print("veraciteNonTROUVER")
-                return "veraciteNonTrouver"
+        
+                    else:
+                        
+                        # print("Something wrong in extracting rating value !")
+                        #print("veracité_Non_TROUVER")
+                     
+                        result="veraciteNonTrouver"
+                        break
+        
+        return result  
+        
+       
+       
+        
+               
+
+    
+        
         
 
     def extract_links(self, parsed_claim_review_page: BeautifulSoup) -> str:
-    
-    
         links_tags = parsed_claim_review_page.find("article",{"class":"w-grid-item"})
         
         lien = links_tags.find("h2",{"class":"w-post-elm"})
@@ -265,26 +273,29 @@ class FatabyyanoFactCheckingSiteExtractor(FactCheckingSiteExtractor):
         if lien:
             liens = lien.find("a")["href"]
             print(liens)
-            return liens       
-
-        
+            return liens  
+            
 
     @staticmethod
     def translate_rating_value(initial_rating_value: str) -> str:
         return {
             "veraciteNonTrouver": "NULL",
+            "المصادر": "NULL",
             "صحيح": "TRUE",
             "زائف جزئياً": "MIXTURE",
             "عنوان مضلل": "OTHER",  # ?
-            "رأي": "OTHER",  # ? (Opinion)
+            "رأي": "OTHER",  # ?opition
             "ساخر": "OTHER",  # ? (Sarcastique)
             "غير مؤهل": "FALSE",  # ? (Inéligible)
             "خادع": "FALSE",  # ? (Trompeur)
-            "زائف": "FALSE" #faut
-            
+            "زائف": "FALSE", #faut
+            "ادعاء انفجار بيروت مفتعل زائف": "FALSE",
+            "":"NULL"
+                 
         }[initial_rating_value]
 
     # write this method (and tagme, translate) in an another file cause we can use it in other websites
+    
     @staticmethod
     def get_json_format(tagme_entity):
         '''
